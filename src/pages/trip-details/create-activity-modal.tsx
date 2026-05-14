@@ -3,6 +3,7 @@ import { Button } from "../../components/button";
 import { FormEvent } from "react";
 import { api } from "../../lib/axios";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 interface CreateActivityModalProps {
     closeCreateActivityModal: () => void
@@ -18,16 +19,23 @@ export function CreateActivityModal({
     event.preventDefault()
 
     const data = new FormData(event.currentTarget)
-
     const title = data.get('title')?.toString()
     const occurs_at = data.get('occurs_at')?.toString()
 
-    await api.post(`/trips/${tripId}/activities`, {
-      title,
-      occurs_at
-    })
+    if (!title) return toast.error('Informe o nome da atividade.')
+    if (!occurs_at) return toast.error('Informe a data e horário da atividade.')
 
-    window.document.location.reload()
+    try {
+      await api.post(`/trips/${tripId}/activities`, { title, occurs_at })
+      toast.success('Atividade cadastrada!')
+      window.document.location.reload()
+    } catch (error: any) {
+      const message = error?.response?.data?.message
+      toast.error(message === 'Invalid activity date.'
+        ? 'A data da atividade deve estar dentro do período da viagem.'
+        : message ?? 'Erro ao cadastrar atividade.'
+      )
+    }
   }
 
   return (

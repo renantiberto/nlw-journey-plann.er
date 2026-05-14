@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { InviteGuestsModal } from "./invite-guests-modal";
 import { ConfirmTripModal } from "./confirm-trip-modal";
 import { DestinationAndDateStep } from "./steps/destination-and-date-step";
@@ -75,35 +76,42 @@ export function CreateTripPage() {
 
   async function createTrip(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    
+
     if(!destination) {
-      return
+      return toast.error('Informe o destino da viagem.')
     }
 
     if(!eventStartAndEndDates?.from || !eventStartAndEndDates?.to) {
-      return
+      return toast.error('Selecione as datas da viagem.')
     }
 
     if(emailsToInvite.length === 0) {
-      return
+      return toast.error('Convide pelo menos um participante.')
     }
 
     if(!ownerName || !ownerEmail) {
-      return
+      return toast.error('Informe seu nome e e-mail.')
     }
-    
-    const response = await api.post('/trips', {
-      destination,
-      starts_at: eventStartAndEndDates.from,
-      ends_at: eventStartAndEndDates.to,
-      emails_to_invite: emailsToInvite,
-      owner_name: ownerName,
-      owner_email: ownerEmail
-    })
 
-    const { tripId } = response.data
+    try {
+      const response = await api.post('/trips', {
+        destination,
+        starts_at: eventStartAndEndDates.from,
+        ends_at: eventStartAndEndDates.to,
+        emails_to_invite: emailsToInvite,
+        owner_name: ownerName,
+        owner_email: ownerEmail
+      })
 
-    navigate(`/trips/${tripId}`)
+      const { tripId } = response.data
+      navigate(`/trips/${tripId}`)
+    } catch (error: any) {
+      const message = error?.response?.data?.message
+      toast.error(message === 'Invalid trip start date.'
+        ? 'A data de início não pode ser no passado.'
+        : message ?? 'Erro ao criar viagem. Tente novamente.'
+      )
+    }
   }
 
   return (
